@@ -1,0 +1,9 @@
+undetected-chromedriver
+selenium
+webdriver-manager
+pandas
+openpyxl
+python-dotenv
+google-genai
+playwright
+openai
