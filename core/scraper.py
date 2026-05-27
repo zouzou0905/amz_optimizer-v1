@@ -1,56 +1,117 @@
-import undetected_chromedriver as uc
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-import time
 import random
+import time
+
+from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import sync_playwright
 
 
 class AmazonSpider:
-    def __init__(self, headless=False):
-        options = uc.ChromeOptions()
-        if headless:
-            options.add_argument('--headless')
-        options.add_argument('--lang=de-DE')
+    """Fetch Amazon product title and main image with Playwright."""
 
-        # --- 强制指定版本为 144，解决驱动版本过高的问题 ---
-        print("🔧 正在启动 Chrome 144 兼容模式...")
-        try:
-            self.driver = uc.Chrome(options=options, version_main=144)
-        except Exception as e:
-            print(f"⚠️ 强制版本启动失败，尝试自动启动: {e}")
-            self.driver = uc.Chrome(options=options)
+    def __init__(self, headless=False, locale="de-DE"):
+        self.headless = headless
+        self.locale = locale
+        self.playwright = None
+        self.browser = None
+        self.context = None
+        self._start_browser()
+
+    def _start_browser(self):
+        self.playwright = sync_playwright().start()
+        self.browser = self.playwright.chromium.launch(
+            headless=self.headless,
+            args=["--disable-blink-features=AutomationControlled"],
+        )
+        self.context = self.browser.new_context(
+            locale=self.locale,
+            viewport={"width": 1365, "height": 900},
+        )
+        print("Playwright Chromium 启动成功")
+
+    def _new_page(self):
+        page = self.context.new_page()
+        page.set_default_timeout(15000)
+        page.route(
+            "**/*.{woff,woff2,ttf,otf,css}",
+            lambda route: route.abort(),
+        )
+        return page
+
+    @staticmethod
+    def _clean_text(value):
+        return value.strip() if value else ""
 
     def fetch_product_data(self, url):
-        """同时抓取标题和图片链接"""
+        """抓取商品标题和主图链接。"""
+        page = self._new_page()
         try:
-            self.driver.get(url)
-            time.sleep(random.uniform(2, 4))
-            wait = WebDriverWait(self.driver, 15)
+            page.goto(url, wait_until="domcontentloaded", timeout=60000)
+            page.mouse.wheel(0, random.randint(250, 700))
+            time.sleep(random.uniform(1.5, 3.0))
 
-            # 1. 抓取标题
-            title_el = wait.until(EC.presence_of_element_located((By.ID, "productTitle")))
-            title = title_el.text.strip()
+            title = self._get_title(page)
+            image_url = self._get_image_url(page)
 
-            # 2. 抓取图片链接 (新增逻辑)
-            image_url = "无图片"
-            try:
-                # 尝试 Amazon 常用的主图 ID
-                img_el = self.driver.find_element(By.ID, "landingImage") or \
-                         self.driver.find_element(By.ID, "imgBlkFront")
-                image_url = img_el.get_attribute("src")
-            except:
-                pass
+            if not title:
+                raise ValueError("未找到商品标题")
 
-            return {"title": title, "image_url": image_url}
-
-        except Exception as e:
-            print(f"❌ 抓取异常: {e}")
+            return {"title": title, "image_url": image_url or "无图片"}
+        except Exception as exc:
+            print(f"抓取异常: {exc}")
             return {"title": "抓取失败", "image_url": "抓取失败"}
+        finally:
+            page.close()
+
+    def _get_title(self, page):
+        selectors = [
+            "#productTitle",
+            "#title",
+            "span#productTitle",
+        ]
+        for selector in selectors:
+            try:
+                locator = page.locator(selector).first
+                locator.wait_for(state="visible", timeout=15000)
+                title = self._clean_text(locator.inner_text())
+                if title:
+                    return title
+            except PlaywrightTimeoutError:
+                continue
+        return ""
+
+    def _get_image_url(self, page):
+        selectors = [
+            "#landingImage",
+            "#imgBlkFront",
+            "#ebooksImgBlkFront",
+            "img[data-old-hires]",
+        ]
+        for selector in selectors:
+            locator = page.locator(selector).first
+            try:
+                if locator.count() == 0:
+                    continue
+                image_url = (
+                    locator.get_attribute("src")
+                    or locator.get_attribute("data-old-hires")
+                    or locator.get_attribute("data-a-dynamic-image")
+                )
+                if image_url:
+                    return image_url
+            except Exception:
+                continue
+        return ""
 
     def close(self):
+        for resource in (self.context, self.browser):
+            try:
+                if resource:
+                    resource.close()
+            except Exception:
+                pass
+
         try:
-            if self.driver:
-                self.driver.quit()
+            if self.playwright:
+                self.playwright.stop()
         except Exception:
             pass
