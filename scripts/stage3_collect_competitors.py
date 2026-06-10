@@ -132,6 +132,7 @@ async def run(market="UK", input_file=STAGE2_OUTPUT_FILE, output_file=STAGE3_OUT
     market_config = get_market_config(market)
     input_file = Path(input_file)
     output_file = Path(output_file)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
 
     if not input_file.exists():
         raise FileNotFoundError(f"找不到 Stage 3 输入文件: {input_file}")

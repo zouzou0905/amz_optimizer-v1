@@ -11,7 +11,7 @@ try:
 except ImportError:
     import _bootstrap  # noqa: F401
 
-from config import AI_ANALYZER_INPUT, AI_ANALYZER_OUTPUT, DEEPSEEK_API_KEY, DEEPSEEK_MODEL
+from config import DEEPSEEK_API_KEY, DEEPSEEK_MODEL, STAGE3_OUTPUT_FILE, STAGE4_OUTPUT_FILE
 from core.market import get_market_config, normalize_market
 
 
@@ -69,11 +69,12 @@ async def get_ai_response(client, market_config, prompt, asin):
     return None, last_error, MAX_RETRIES
 
 
-async def run(market="UK", input_file=AI_ANALYZER_INPUT, output_file=AI_ANALYZER_OUTPUT):
+async def run(market="UK", input_file=STAGE3_OUTPUT_FILE, output_file=STAGE4_OUTPUT_FILE):
     market = normalize_market(market)
     market_config = get_market_config(market)
     input_file = Path(input_file)
     output_file = Path(output_file)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
 
     if not DEEPSEEK_API_KEY:
         raise ValueError("未设置 DEEPSEEK_API_KEY，请先创建 .env。")

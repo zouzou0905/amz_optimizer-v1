@@ -1,7 +1,7 @@
 import os
 
 from app import AmazonApp
-from config import DEFAULT_INPUT_FILE, DEFAULT_OUTPUT_FILE, INPUT_DIR, OUTPUT_DIR
+from config import DEFAULT_INPUT_FILE, INPUT_DIR, OUTPUT_DIR, STAGE1_OUTPUT_FILE
 
 
 def run(headless=False):
@@ -11,7 +11,7 @@ def run(headless=False):
     app = AmazonApp(
         {
             "input_file": str(DEFAULT_INPUT_FILE),
-            "output_file": str(DEFAULT_OUTPUT_FILE),
+            "output_file": str(STAGE1_OUTPUT_FILE),
             "headless": headless,
             "max_retries": 3,
         }

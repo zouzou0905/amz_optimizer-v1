@@ -102,10 +102,10 @@ data/input/my-products.xlsx
 主要路径配置在 `config.py`：
 
 - `DEFAULT_INPUT_FILE`
-- `DEFAULT_OUTPUT_FILE`
+- `STAGE1_OUTPUT_FILE`
 - `STAGE2_OUTPUT_FILE`
 - `STAGE3_OUTPUT_FILE`
-- `AI_ANALYZER_OUTPUT`
+- `STAGE4_OUTPUT_FILE`
 
 ## 推荐运行方式
 
@@ -205,7 +205,7 @@ data/input/my-products.xlsx
 默认输出：
 
 ```text
-data/output/my-products全部.xlsx
+data/output/my-products_stage1.xlsx
 ```
 
 ### Stage 2：AI 语义提词并生成关键词分析表
@@ -218,7 +218,7 @@ python cli.py stage2 --market DE
 默认输出：
 
 ```text
-data/categories/my-products全部_分析表.xlsx
+data/output/my-products_stage2.xlsx
 ```
 
 Stage 2 默认使用 DeepSeek 根据标题语义提取 3 个 Amazon 搜索关键词：
@@ -249,6 +249,12 @@ python cli.py stage3 --market DE
 - `amazon_uk_state.json`
 - `amazon_de_state.json`
 
+默认输出：
+
+```text
+data/output/my-products_stage3.xlsx
+```
+
 ### Stage 4：AI Listing 优化
 
 ```powershell
@@ -257,6 +263,12 @@ python cli.py stage4 --market DE
 ```
 
 该阶段会调用 DeepSeek，根据 Stage 3 的竞品数据生成最终优化结果。
+
+默认输出：
+
+```text
+data/output/my-products_stage4.xlsx
+```
 
 Stage 4 的失败处理：
 
@@ -331,7 +343,8 @@ python cli.py stage2 --market UK
 - `core/`：核心业务模块。
 - `scripts/`：真实阶段脚本。
 - `market/`：独立市场分析工具。
-- `data/`：输入、过程结果和输出文件。
+- `data/input/`：原始输入文件。
+- `data/output/`：Stage 1 至 Stage 4 的输出文件。
 
 ## Git 提交前建议检查
 

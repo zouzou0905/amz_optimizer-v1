@@ -20,7 +20,12 @@
   - `stage3_collect_competitors.py`
   - `stage4_ai_optimize_listing.py`
 - `market/`：独立市场分析工具。
-- `data/`：输入文件、中间结果和输出 Excel 文件。
+- `data/input/`：原始输入文件，默认是 `my-products.xlsx`。
+- `data/output/`：所有阶段输出文件。
+  - `my-products_stage1.xlsx`
+  - `my-products_stage2.xlsx`
+  - `my-products_stage3.xlsx`
+  - `my-products_stage4.xlsx`
 
 ## 推荐入口
 

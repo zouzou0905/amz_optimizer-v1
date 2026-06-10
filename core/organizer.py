@@ -2,11 +2,12 @@ import json
 import os
 import re
 import time
+from pathlib import Path
 
 import pandas as pd
 from openai import OpenAI
 
-from config import BRAND_NAME, CATEGORIES_DIR, DEEPSEEK_API_KEY, DEEPSEEK_MODEL, STAGE2_OUTPUT_FILE
+from config import BRAND_NAME, DEEPSEEK_API_KEY, DEEPSEEK_MODEL, STAGE2_OUTPUT_FILE
 from core.market import normalize_market
 
 
@@ -83,7 +84,7 @@ class CategoryOrganizer:
         self.market = normalize_market(market)
         self.use_ai = use_ai
         self.client = self._make_client() if use_ai and DEEPSEEK_API_KEY else None
-        os.makedirs(CATEGORIES_DIR, exist_ok=True)
+        Path(self.output_path).parent.mkdir(parents=True, exist_ok=True)
 
     def _make_client(self):
         return OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com")
