@@ -38,12 +38,48 @@ USER_AGENTS = [
 ]
 
 
+def get_stealth_async():
+    """Return a compatible async stealth function without calling modules."""
+    if not STEALTH_AVAILABLE:
+        return None
+
+    direct = getattr(playwright_stealth, "stealth_async", None)
+    if callable(direct):
+        return direct
+
+    stealth_module = getattr(playwright_stealth, "stealth", None)
+    module_function = getattr(stealth_module, "stealth_async", None)
+    if callable(module_function):
+        return module_function
+
+    stealth_class = getattr(playwright_stealth, "Stealth", None)
+    if callable(stealth_class):
+        instance = stealth_class()
+        apply_async = getattr(instance, "apply_stealth_async", None)
+        if callable(apply_async):
+            return apply_async
+
+    return None
+
+
+async def apply_stealth(page):
+    stealth_async = get_stealth_async()
+    if not stealth_async:
+        return
+
+    try:
+        await stealth_async(page)
+    except Exception as exc:
+        print(f"警告: playwright-stealth 应用失败，将继续使用普通 Playwright: {exc}")
+
+
 async def ensure_amazon_identity(context, market_config, market):
     state_file = Path(market_config["state_file"])
     if state_file.exists():
         return
 
     page = await context.new_page()
+    await apply_stealth(page)
     try:
         print(
             f"首次初始化 {market} 市场，请在浏览器中将 {market_config['domain']} "
@@ -59,6 +95,7 @@ async def ensure_amazon_identity(context, market_config, market):
 
 async def get_detail(context, url, rank, my_asin, keyword):
     page = await context.new_page()
+    await apply_stealth(page)
     await page.route("**/*.{png,jpg,jpeg,gif,woff,woff2,svg}", lambda route: route.abort())
 
     try:
@@ -161,10 +198,6 @@ async def run(market="UK", input_file=STAGE2_OUTPUT_FILE, output_file=STAGE3_OUT
                 locale=market_config["locale"],
                 storage_state=market_config["state_file"] if Path(market_config["state_file"]).exists() else None,
             )
-            if STEALTH_AVAILABLE:
-                stealth_fn = getattr(playwright_stealth, "stealth_async", None) or getattr(playwright_stealth, "stealth", None)
-                if stealth_fn:
-                    await stealth_fn(context)
             return context
 
         context = await create_context()
@@ -220,6 +253,7 @@ async def run(market="UK", input_file=STAGE2_OUTPUT_FILE, output_file=STAGE3_OUT
 
 async def search_competitors(context, domain, keyword):
     page = await context.new_page()
+    await apply_stealth(page)
     try:
         search_url = f"https://{domain}/s?k={keyword.replace(' ', '+')}"
         await page.goto(search_url, wait_until="domcontentloaded", timeout=60000)
